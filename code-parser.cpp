@@ -143,6 +143,100 @@ void ExpStatement::_exec(const Scope& scope) const {
   expr.eval(scope);
 }
 
+/* * * * * FuncDeclaration * * * * */
+
+std::string parseName(const char** source) {
+  std::stringstream ss;
+  const char* code = *source;
+
+  // Parse the function name:
+  if (isalpha(*code) || *code == '_') {
+    ss << *code;
+    ++code;
+
+    while (isalnum(*code) || *code == '_') {
+      ss << *code;
+      ++code;
+    }
+
+    // Find the '(':
+    while (isspace(*code)) ++code;
+  } else {
+    throw syntax_error("Expected variable name!");
+  }
+
+  *source = code;
+
+  return ss.str();
+}
+
+void FuncDeclaration::_compile(const char* code, const char** rest,
+                            const Scope& parent_scope) {
+  // Make sure its empty:
+  args.clear();
+
+  // Find the start of the name:
+  while (isspace(*code)) ++code;
+
+  // Parse the function name:
+  try {
+    name = parseName(&code);
+  } catch(syntax_error e) {
+    throw syntax_error("Missing name after `function` key-word!");
+  }
+
+  if (*code != '(') {
+    throw syntax_error("Expected argument list after `function` reserved word!");
+  }
+
+  // Find the next non-blank character:
+  ++code;
+  while (isspace(*code)) ++code;
+
+  // Parse each argument of the block:
+  while (*code && *code != ')') {
+
+    if (*code == ',') {
+      throw syntax_error("Empty item on argument list!");
+    } else {
+      
+      try {
+        // Parse the argument name:
+        args.push_back(parseName(&code));
+      } catch (syntax_error e) {
+        throw syntax_error("Invalid argument name!");
+      }
+
+      if(*code == ',') {
+        ++code;
+      } else if (*code != ')') {
+        if (isalpha(*code) || *code == '_') {
+          syntax_error("Missing ',' in argument list!");
+        } else {
+          syntax_error("Invalid character in argument list!");
+        }
+      }
+    }
+
+    // Discard blank spaces:
+    while (isspace(*code)) ++code;
+  }
+
+  if (*code != ')') {
+    throw syntax_error("Expected function body before end of file!");
+  } else {
+    ++code;
+  }
+
+  body.compile(code, &code, parent_scope);
+
+  if (rest) *rest = code;
+}
+
+void FuncDeclaration::_exec(const Scope& scope) const {
+  scope.scope.front()->at(name) = packToken(UserFunction(args, body, name));
+}
+
 /* * * * * BlockStatement Class * * * * */
 
 // Decide what type of statement to build:
@@ -188,7 +282,7 @@ void BlockStatement::_compile(const char* code, const char** rest,
     while (isspace(*code)) ++code;
 
     // Parse each statement of the block:
-    while (*code != '\0' && *code != '}') {
+    while (*code && *code != '}') {
       // Ignore empty statements:
       if (strchr(";\n", *code)) {
         ++code;

@@ -1,8 +1,8 @@
 
-
 #ifndef GENERATORS_H_
 
 #include "./exp-parser/shunting-yard.h"
+#include "./code-parser.h"
 
 // These are token numbers used to extend
 // The default Token types of the calculator class.
@@ -18,6 +18,20 @@ class Iterator : public TokenBase {
  public:
   virtual packToken* next() = 0;
   virtual void reset() = 0;
+};
+
+class UserFunction : public Function {
+  typedef std::list<std::string> strList;
+  BlockStatement body;
+
+ private:
+  void cleanArgs();
+  packToken exec(const Scope& scope);
+
+ public:
+  UserFunction(strList args, BlockStatement body, std::string name = "");
+  UserFunction(const UserFunction& other);
+  ~UserFunction() { cleanArgs(); }
 };
 
 // class Generator : public Iterator {
