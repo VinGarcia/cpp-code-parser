@@ -1,3 +1,8 @@
+# Project Moved
+
+Important note: This project has been
+moved to: [jSpy](https://github.com/VinGarcia/jSpy)
+
 # jSpy - Javascript-like Speech Parser framework with Pythonic features.
 
 This project provides an interpreter for the jSpy programming language.
